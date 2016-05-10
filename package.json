@@ -1,0 +1,16 @@
+{
+  "name": "irisjs-githubauth",
+  "version": "1.0.0",
+  "description": "Register and login using a github account",
+  "main": "irisjsGithubAuth.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "cityweb.adam",
+  "license": "ISC",
+  "dependencies": {
+    "https": "^1.0.0",
+    "qs": "^6.2.0",
+    "request": "^2.72.0"
+  }
+}
