@@ -309,15 +309,16 @@ iris.modules.irisjsGithubAuth.registerHook("hook_form_submit__githubAuthSettings
 });
 
 /**
- * Implements hook_restart_receive.
+ * Implements dbReady.
  * Adds the githubaccesstoken field to the user entity after this module is enabled.
  */
-iris.modules.irisjsGithubAuth.registerHook("hook_restart_receive", 0, function (thisHook, data) {
-
-  if (data.enabledModules && data.enabledModules.indexOf('irisjsGithubAuth') > -1) {
+ 
+process.on("dbReady", function(){
+   
+  if (iris.modules.irisjsGithubAuth) {
 
     // Fetch current schema
-    var schema = JSON.parse(JSON.stringify(iris.dbSchemaConfig['user']));
+    var schema = iris.entityTypes['user'];
 
     if (Object.keys(schema.fields).indexOf('githubAccessToken') <= 0) {
 
@@ -334,19 +335,11 @@ iris.modules.irisjsGithubAuth.registerHook("hook_restart_receive", 0, function (
       // Save updated schema.
       iris.saveConfig(schema, "entity", 'user', function (data) {
 
-        iris.dbPopulate();
-        thisHook.pass(data);
-
       });
 
     }
-    else {
-      thisHook.pass(data);
-    }
+
 
   }
-  else {
-    thisHook.pass(data);
-  }
-
+  
 });
