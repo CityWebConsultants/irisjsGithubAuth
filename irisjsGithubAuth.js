@@ -33,6 +33,7 @@ var routes = {
 iris.route.get("/github-callback", routes.auth, function (req, res) {
 
   // Get saved config.
+  
   var config = iris.readConfigSync('irisGithubAuth', 'settings');
 
   if (config && config.clientid) {
@@ -70,7 +71,7 @@ iris.route.get("/github-callback", routes.auth, function (req, res) {
     'client_secret': clientSecret,
     'code': sessionCode,
   });
-
+  
   // Get access token.
   request.post({
       'url': 'https://github.com/login/oauth/access_token',
@@ -78,7 +79,7 @@ iris.route.get("/github-callback", routes.auth, function (req, res) {
       'json': true
     },
     function (error, response, body) {
-
+      
       if (!error && response.statusCode == 200) {
         res.cookie('github-auth', body);
 
@@ -86,11 +87,12 @@ iris.route.get("/github-callback", routes.auth, function (req, res) {
         request.get({
             'url': 'https://api.github.com/user/emails?access_token=' + body.access_token,
             'headers': {
-              'User-Agent': appId
+              'User-Agent': appId,
+              'User-Agent': 'facascante'
             }
           },
           function (error, response, emails) {
-      
+             
             if (!error && response.statusCode == 200) {
           
               emails = JSON.parse(emails);
@@ -102,30 +104,46 @@ iris.route.get("/github-callback", routes.auth, function (req, res) {
                   var email = emails[i].email;
 
                   // Check if account exists.
-                  iris.dbCollections['user'].find({
-                    'username' : email}
-                  ).exec(function (err, entities) {
+                  var userQuery = {
+                    entities: ['user'],
+                    queries: [{
+                      field: 'username',
+                      operator: 'contains',
+                      value: email
+                    }]
+                  };
+                  
+                  iris.invokeHook("hook_entity_fetch", "root", null, userQuery).then(function (entities) {
+                    
+                         if (entities.length > 0) {
 
-                    if (entities.length > 0) {
-
-                      // User exists so login.
-                      iris.modules.irisjsGithubAuth.globals.login(entities[0], body.access_token, res, finished);
-
-                    }
-                    else {
-
-                      // New user so register.
-                      iris.modules.irisjsGithubAuth.globals.register(email, body.access_token, res, finished);
-
-                    }
-
+                            // User exists so login.
+                            
+                            iris.modules.irisjsGithubAuth.globals.login(entities[0], body.access_token, res, finished);
+      
+                          }
+                          else {
+      
+                            // New user so register.
+                            iris.modules.irisjsGithubAuth.globals.register(email, body.access_token, res, finished);
+      
+                          }
+                    
+                    }, function (fail) {
+                    
+                        iris.log("error", emails);
+                        res.redirect('/admin');
+                  
                   });
 
                 }
 
               };
             }
-
+            else{
+              iris.log("error", emails);
+              res.redirect('/admin');
+            }
          });
       }
     }
@@ -207,19 +225,13 @@ iris.modules.irisjsGithubAuth.globals.login = function (user, token, res, callba
       iris.modules.sessions.globals.writeCookies(userid, token.id, res, 8.64e7, {});
 
       // Add last login timestamp to user entity.
-      iris.dbCollections['user'].update(
-        {
-          "eid": userid
-        },
-        {
-          $set : {
-            "lastlogin" : Date.now(),
-            "githubaccesstoken" : token
-          }
-        },
-        {},
-        function(err, doc) {}
-      );
+      var userEntity = {
+        "entityType": "user",
+        "eid": userid,
+        "lastlogin": Date.now(),
+        "githubaccesstoken" : token
+      }
+      iris.invokeHook("hook_entity_edit", "root", null, userEntity);
 
     callback(true);
 
@@ -236,7 +248,7 @@ iris.modules.irisjsGithubAuth.globals.login = function (user, token, res, callba
  * Alter the default login form to add a 'Login with Github' link.
  */
 iris.modules.irisjsGithubAuth.registerHook("hook_form_render__login", 2, function (thisHook, data) {
-
+  
   var config = iris.readConfigSync('irisGithubAuth', 'settings')
 
   if (config && config.clientid) {
