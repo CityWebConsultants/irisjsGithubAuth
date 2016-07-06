@@ -214,7 +214,7 @@ iris.modules.irisjsGithubAuth.globals.register = function (email, token, res, ca
 /**
  * Function to login an existing user.
  */
-iris.modules.irisjsGithubAuth.globals.login = function (user, token, res, callback) {
+iris.modules.irisjsGithubAuth.globals.login = function (user, githubtoken, res, callback) {
 
   var userid = user.eid.toString();
 
@@ -229,7 +229,7 @@ iris.modules.irisjsGithubAuth.globals.login = function (user, token, res, callba
         "entityType": "user",
         "eid": userid,
         "lastlogin": Date.now(),
-        "githubaccesstoken" : token
+        "githubaccesstoken" : githubtoken
       }
       iris.invokeHook("hook_entity_edit", "root", null, userEntity);
 
