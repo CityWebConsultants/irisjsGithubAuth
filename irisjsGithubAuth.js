@@ -52,7 +52,7 @@ iris.route.get("/github-callback", routes.auth, function (req, res) {
 
     if(success) {
 
-      res.redirect('/user');
+      res.redirect(req.query.endpoint);
 
     }
     else {
